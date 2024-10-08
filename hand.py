@@ -172,60 +172,72 @@ async def new_2_2(message: Message, state: FSMContext):
 
 @rt.message(new_product.name)
 async def new_3(message: Message, state: FSMContext):
-    await state.update_data(name=message.text)
-    await state.set_state(new_product.description)
-    await message.answer(text='Введите описание товара:')
+    if message.content_type != types.ContentType.TEXT:
+        await message.answer(text='Пришлите текст!')
+    else:
+        await state.update_data(name=message.text)
+        await state.set_state(new_product.description)
+        await message.answer(text='Введите описание товара:')
 
 @rt.message(new_product.description)
 async def new_4(message: Message, state: FSMContext):
-    await state.update_data(description=message.text)
-    await state.set_state(new_product.price)
-    await message.answer(text='Введите цену товара:')
+    if message.content_type != types.ContentType.TEXT:
+        await message.answer(text='Пришлите текст!')
+    else:
+        await state.update_data(description=message.text)
+        await state.set_state(new_product.price)
+        await message.answer(text='Введите цену товара:')
 
 @rt.message(new_product.price)
 async def new_5(message: Message, state: FSMContext):
-    await state.update_data(price=message.text)
-    await state.set_state(new_product.locate)
-    await message.answer(text='Укажите место встречи с покупателем:')
+    if message.content_type != types.ContentType.TEXT:
+        await message.answer(text='Пришлите текст!')
+    else:
+        await state.update_data(price=message.text)
+        await state.set_state(new_product.locate)
+        await message.answer(text='Укажите место встречи с покупателем:')
 
 @rt.message(new_product.locate)
 async def new_6(message: Message, state: FSMContext, bot: Bot, ):
-    await state.update_data(locate=message.text)
-    data = await state.get_data()
-    global text, send, name_ofer, data_state
-    data_state = data
-    average = await average_rating(message.from_user.username)
-    if data['group'] == 'zhizha':
-        data['group'] = 'Жидкость'
+    if message.content_type != types.ContentType.TEXT:
+        await message.answer(text='Пришлите текст!')
     else:
-        data['group'] = 'Эл_сигарета'
-    if average[1] == 1:
-        fb = 'отзыв'
-    elif average[1] == 2:
-        fb = 'отзыва'
-    elif average[1] == 3:
-        fb = 'отзыва'
-    elif average[1] == 4:
-        fb = 'отзыва'
-    else:
-        fb = 'отзывов'
-    text = (f"#{data['group']}\n\n"
-            f"{data['price']} ₽\n"
-            f"{data['name']}\n"
-            f"{data['description']}\n"
-            f"{data['locate']}\n\n"
-            f"@{message.from_user.username}\n"
-            f"{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n"
-            f"({average[1]} {fb})")
-    builder = MediaGroupBuilder(caption=text)
-    for i in data['photo']:
-        builder.add_photo(media=f'{i}')
-    send = await message.answer_media_group(media=builder.build())
-    rows = [[buttons[3]],
-            [buttons[2]]]
-    markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    await message.answer(text='⬆️ Вот так будет выглядить ваше объяевление', reply_markup=markup)
-    await state.clear()
+        await state.update_data(locate=message.text)
+        data = await state.get_data()
+        global text, send, name_ofer, data_state
+        data_state = data
+        average = await average_rating(message.from_user.username)
+        if data['group'] == 'zhizha':
+            data['group'] = 'Жидкость'
+        else:
+            data['group'] = 'Эл_сигарета'
+        if average[1] == 1:
+            fb = 'отзыв'
+        elif average[1] == 2:
+            fb = 'отзыва'
+        elif average[1] == 3:
+            fb = 'отзыва'
+        elif average[1] == 4:
+            fb = 'отзыва'
+        else:
+            fb = 'отзывов'
+        text = (f"#{data['group']}\n\n"
+                f"{data['price']} ₽\n"
+                f"{data['name']}\n"
+                f"{data['description']}\n"
+                f"{data['locate']}\n\n"
+                f"@{message.from_user.username}\n"
+                f"{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n"
+                f"({average[1]} {fb})")
+        builder = MediaGroupBuilder(caption=text)
+        for i in data['photo']:
+            builder.add_photo(media=f'{i}')
+        send = await message.answer_media_group(media=builder.build())
+        rows = [[buttons[3]],
+                [buttons[2]]]
+        markup = InlineKeyboardMarkup(inline_keyboard=rows)
+        await message.answer(text='⬆️ Вот так будет выглядить ваше объяевление', reply_markup=markup)
+        await state.clear()
 
 @rt.callback_query(F.data == 'good')
 async def send_0(callback: CallbackQuery, bot: Bot):
@@ -305,12 +317,12 @@ async def account(call: CallbackQuery):
     db.close()
     col = len(date)
     average = await average_rating(send_01.from_user.username)
-    await call.message.edit_text(text=f'👤 Пользователь: @{send_01.from_user.username}\n'
-                               f'🪪 ID: <b>{send_01.chat.id}</b>\n'
-                               f'🗂️ Количество объявлений: <b>{col}</b>\n'
-                               f'📈 Ваш рейтинг: <b>{average[0]}</b>\n'
-                               f'📊 Количество отзывов: <b>{average[1]}</b>\n'
-                               f'💰 Баланс бонусного счета: <b>{balance[0]}</b>', reply_markup=markup, parse_mode='HTML')
+    await call.message.edit_text(text=
+                                f'👤 <b>Личный кабинет</b>\n\n'
+                                f'💰 Баланс счета: <b>{balance[0]} ₽</b>\n\n'
+                                f'📣 Количество объявлений: <b>{col}</b>\n\n'
+                                f'🏆 Рейтинг:  <b>{average[0]}</b> {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))} <b>({average[1]})</b>'
+                                 , reply_markup=markup, parse_mode='HTML')
 
 @rt.callback_query(F.data == 'stat')
 async def account(call: CallbackQuery):
