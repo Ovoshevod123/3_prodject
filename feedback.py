@@ -203,12 +203,21 @@ async def fbs_def(message, data_fbs, score, out):
         except:
             await message.answer(text=text, reply_markup=markup)
 
+async def feedback_chek_group(message: Message, name):
+    global fb_score, fbs
+    db = sqlite3.connect('users.db')
+    cur = db.cursor()
+    cur.execute(f"SELECT * FROM fb_offer WHERE seller = '{name}'")
+    fbs = cur.fetchall()
+    db.commit()
+    db.close()
+    fb_score = len(fbs)
+    await fbs_def(message, fbs, 0, 'fb')
+
 @rt_3.message(fb_chek.user_name)
 async def feedback_chek_1(message: Message, state: FSMContext):
     global fb_score, data_fb, fbs
     await state.update_data(user_name=message.text)
-    rows = [[InlineKeyboardButton(text='<', callback_data='<'), InlineKeyboardButton(text='>', callback_data='>')],
-            [InlineKeyboardButton(text='‹ Назад', callback_data='chek_fb')]]
     data_fb = await state.get_data()
     data_fb = data_fb['user_name']
     db = sqlite3.connect('users.db')
@@ -225,14 +234,14 @@ async def feedback_chek_1(message: Message, state: FSMContext):
 async def feedback_1(call: CallbackQuery, state: FSMContext):
     rows = [[InlineKeyboardButton(text='‹ Назад', callback_data='fb_back_1')]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    await call.message.edit_text(text='Введите id объявления', reply_markup=markup)
+    await call.message.edit_text(text='Введите ID объявления', reply_markup=markup)
     await state.clear()
     await state.set_state(feedback_class_1.id)
 
 async def feedback_1_2(message, state):
     rows = [[InlineKeyboardButton(text='‹ Назад', callback_data='fb_back_1')]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    await message.answer(text='Введите id объявления', reply_markup=markup)
+    await message.answer(text='Введите ID объявления', reply_markup=markup)
     await state.clear()
     await state.set_state(feedback_class_1.id)
 
@@ -244,12 +253,23 @@ async def feedback_2(message: Message, state: FSMContext):
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
     await state.update_data(id=message.text)
     data = await state.get_data()
-    deff = await forward_fb(message, data['id'])
-    if deff == 'error':
+
+    db = sqlite3.connect('users.db')
+    cur = db.cursor()
+    cur.execute(f"SELECT offer_id_channel,seller FROM users_offer WHERE offer_id_channel = '{data['id']}'")
+    db_var = cur.fetchall()
+    db.commit()
+    db.close()
+
+    if db_var == []:
         await state.clear()
-        await message.answer(text='Объявление не найдено')
+        await message.answer(text='❌ Объявление не найдено')
+        await feedback_1_2(message, state)
+    elif db_var[0][1] == message.from_user.username:
+        await message.answer('❌ Вы не можете оставить отзыв на самого себя')
         await feedback_1_2(message, state)
     else:
+        deff = await forward_fb(message, data['id'])
         await message.answer(text='Это объявление?', reply_markup=markup)
 
 @rt_3.callback_query(F.data == 'fb_yes')

@@ -7,16 +7,22 @@ from aiogram.filters import Command
 from aiogram.utils.media_group import MediaGroupBuilder
 import sqlite3
 import asyncio
-from reply import buttons
-from hand import offer_def, id_list_dispatch, id_list_auto, forward, average_rating, del_media, edit_def, send_01
-from inf import CRYPTO, CHANNEL_ID
 import pytz
 import datetime
 from datetime import timedelta
+from reply import buttons
+from hand import offer_def, id_list_dispatch, id_list_auto, forward, average_rating, del_media, edit_def, send_01
+from inf import CRYPTO, CHANNEL_ID
 tz = pytz.timezone("Europe/Samara")
 
 rt_5 = Router()
 crypto = AioCryptoPay(token=CRYPTO, network=Networks.MAIN_NET)
+
+async def curs(price):
+    usd = await crypto.get_exchange_rates()
+    usd = usd[0].rate
+    price = int(price) / float(usd)
+    return price
 
 async def creat(price):
     invoice = await crypto.create_invoice(asset='USDT', amount=price)
@@ -77,15 +83,18 @@ async def pay_offer_menu(call: CallbackQuery, bot: Bot):
 
 @rt_5.callback_query(F.data == 'pay')
 async def pay(call: CallbackQuery):
-    rows = [[InlineKeyboardButton(text='Рассылка объявления', callback_data='dispatch_offer')],
-            [InlineKeyboardButton(text='Автопубликация', callback_data='auto_posting')],
+    first = await curs(100)
+    second = await curs(200)
+    rows = [[InlineKeyboardButton(text=f'Рассылка объявления 100 ₽ ({round(first, 2)} $)', callback_data='dispatch_offer')],
+            [InlineKeyboardButton(text=f'Автопубликация 200 ₽ ({round(second, 2)} $)', callback_data='auto_posting')],
             [InlineKeyboardButton(text='‹ Назад', callback_data='back')]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
     await call.message.edit_text(text='💰 <b>Платные тарифы</b>\n\n'
                                       '<b>Рассылка объявлений</b>:\n'
                                       'Бот отправляет выбранное объявление в личные сообщения всем пользователям с пометкой "Реклама"\n\n'
                                       '<b>Автопубликация</b>:\n'
-                                      'Бот публикует выбранное объявление каждый день в 12:00 МСК+1 на протяжении времяни выбранного тарифа\n', reply_markup=markup, parse_mode='html')
+                                      'Бот публикует выбранное объявление каждый день в 12:00 МСК+1 на протяжении времяни выбранного тарифа\n'
+                                      , reply_markup=markup, parse_mode='html')
 
 @rt_5.callback_query(F.data == 'dispatch_offer')
 async def dispatch(call: CallbackQuery):
@@ -118,7 +127,7 @@ async def dispatch(call: CallbackQuery, bot: Bot):
 @rt_5.callback_query(F.data == 'dispatch_pay_cb')
 async def dispatch(call: CallbackQuery):
     global pay_def
-    pay_def = await creat(0.01)
+    pay_def = await creat(await curs(100))
     rows = [[InlineKeyboardButton(text='Оплатить', url=pay_def.bot_invoice_url)],
             [InlineKeyboardButton(text='Проверить оплату', callback_data='chek_dispatch_pay')]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)

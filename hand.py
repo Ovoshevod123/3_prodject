@@ -11,7 +11,7 @@ import time
 import asyncio
 from reply import buttons, but_del, edit_but, buttons_edit
 from inf import CHANNEL_ID
-from feedback import average_rating, fbs_def, account_fb
+from feedback import average_rating, fbs_def, account_fb, feedback_chek_group
 
 rt = Router()
 
@@ -37,10 +37,10 @@ async def start_def(message: Message, bot: Bot):
             [buttons[6], InlineKeyboardButton(text='🆘 Тех. поддрежка', url='t.me/Kukuru3a')],
             [buttons[0]]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    await message.answer(text=f'<b>💨 VБарахолка 💨</b>\n\n'
-                              f'Покупайте, продавайте под системы, кальяты и т.д.\n\n'
-                              f'Подпичывайтесь на наш канал.\n\n'
-                              f'Ваши объявления публикуются здесь.', reply_markup=markup, parse_mode='HTML')
+    text = (f'<b>💨 VБарахолка 💨</b>\n\n'
+            f'Покупайте, продавайте под системы, кальяты и т.д.\n\n'
+            f'Подпичывайтесь на наш канал.\n\n'
+            f'Ваши объявления публикуются здесь.')
     send_01 = message
     db = sqlite3.connect('users.db')
     cur = db.cursor()
@@ -48,10 +48,17 @@ async def start_def(message: Message, bot: Bot):
     info = cur.fetchone()
     if send_01.text == '/start':
         ref = None
+        await message.answer(text=text, reply_markup=markup, parse_mode='HTML')
     else:
         ref = send_01.text.replace('/start ', '')
-        if ref == str(send_01.from_user.id):
-            ref = None
+        if ref[0:2] == '2_':
+            ref = ref.replace('2_', '')
+            await feedback_chek_group(message, ref)
+        elif ref[0:2] == '1_':
+            if ref[2:] == str(send_01.from_user.id):
+                ref = None
+            await message.answer(text=text, reply_markup=markup, parse_mode='HTML')
+
 
     if info == None:
         if ref != None:
@@ -226,12 +233,12 @@ async def new_6(message: Message, state: FSMContext, bot: Bot, ):
                 f"{data['name']}\n"
                 f"{data['description']}\n"
                 f"{data['locate']}\n\n"
-                f"@{message.from_user.username}\n"
+                f"@{message.from_user.username}   <a href='t.me/VBaraholka_bot/?start=2_{message.from_user.username}'>посмотреть отзовы</a>\n"
                 f"{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n"
                 f"({average[1]} {fb})")
         builder = MediaGroupBuilder(caption=text)
         for i in data['photo']:
-            builder.add_photo(media=f'{i}')
+            builder.add_photo(media=f'{i}', parse_mode="HTML")
         send = await message.answer_media_group(media=builder.build())
         rows = [[buttons[3]],
                 [buttons[2]]]
@@ -256,14 +263,14 @@ async def send_0(callback: CallbackQuery, bot: Bot):
     col = len(photo)
     if col > 1:
         media = [
-            types.InputMediaPhoto(media=photo[0], caption=text),
+            types.InputMediaPhoto(media=photo[0], caption=text, parse_mode="HTML"),
             *[types.InputMediaPhoto(media=photo_id) for photo_id in photo[1:]]
         ]
     else:
-        media = [types.InputMediaPhoto(media=photo[0], caption=text)]
+        media = [types.InputMediaPhoto(media=photo[0], caption=text, parse_mode="HTML")]
 
     send_02 = await bot.send_media_group(chat_id=CHANNEL_ID, media=media)
-    await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=send_02[0].message_id, caption=text + f'\n\nid сообщения: {send_02[0].message_id}')
+    await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=send_02[0].message_id, caption=text + f'\n\nid сообщения: {send_02[0].message_id}', parse_mode="HTML")
 
     a = ''
     for i in data_state['photo']:
@@ -278,7 +285,7 @@ async def send_0(callback: CallbackQuery, bot: Bot):
     a = await callback.message.edit_text(
         text='Теперь твое объявление опубликованно <a href="https://web.telegram.org/a/#-1002160209777">здесь</a>.',
         parse_mode='HTML')
-    await start_def(callback.message)
+    await start_def(callback.message, bot)
     await asyncio.sleep(5)
     await a.delete()
     photo.clear()
