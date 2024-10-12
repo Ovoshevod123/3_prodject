@@ -1,5 +1,4 @@
 import datetime
-import aiogram.exceptions
 from aiogram import types, Router, F, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -7,11 +6,10 @@ from aiogram.types import Message, InlineKeyboardMarkup, CallbackQuery, ReplyKey
 from aiogram.filters import Command
 from aiogram.utils.media_group import MediaGroupBuilder
 import sqlite3
-import time
 import asyncio
 from reply import buttons, but_del, edit_but, buttons_edit
 from inf import CHANNEL_ID
-from feedback import average_rating, fbs_def, account_fb, feedback_chek_group
+from feedback import average_rating, account_fb, feedback_chek_group
 
 rt = Router()
 
@@ -30,8 +28,19 @@ class new_product(StatesGroup):
     price = State()
     locate = State()
 
+async def start_def(message: Message):
+    rows = [[buttons[5], buttons[1]],
+            [buttons[6], InlineKeyboardButton(text='🆘 Тех. поддрежка', url='t.me/Kukuru3a')],
+            [buttons[0]]]
+    markup = InlineKeyboardMarkup(inline_keyboard=rows)
+    text = (f'<b>💨 VБарахолка 💨</b>\n\n'
+            f'Покупайте, продавайте под системы, кальяты и т.д.\n\n'
+            f'Подпичывайтесь на наш канал.\n\n'
+            f'Ваши объявления публикуются здесь.')
+    await message.answer(text=text, reply_markup=markup, parse_mode='HTML')
+
 @rt.message(Command('start'))
-async def start_def(message: Message, bot: Bot):
+async def start(message: Message, bot: Bot):
     global send_01
     rows = [[buttons[5], buttons[1]],
             [buttons[6], InlineKeyboardButton(text='🆘 Тех. поддрежка', url='t.me/Kukuru3a')],
@@ -57,13 +66,12 @@ async def start_def(message: Message, bot: Bot):
         elif ref[0:2] == '1_':
             if ref[2:] == str(send_01.from_user.id):
                 ref = None
+            else:
+                cur.execute(f"SELECT id FROM users WHERE id = '{ref}'")
+                await bot.send_message(chat_id=int(ref), text='По вашей ссылке')
             await message.answer(text=text, reply_markup=markup, parse_mode='HTML')
 
-
     if info == None:
-        if ref != None:
-            cur.execute(f"SELECT id FROM users WHERE id = '{ref}'")
-            await bot.send_message(chat_id=int(ref), text='По вашей ссылке')
         cur.execute(f"SELECT col_ref FROM users WHERE id = '{ref}'")
         col_ref = cur.fetchall()
         cur.execute(f"Update users set 'col_ref' = '{int(col_ref[0][0]) + 1}' where id = '{ref}'")
@@ -270,7 +278,7 @@ async def send_0(callback: CallbackQuery, bot: Bot):
         media = [types.InputMediaPhoto(media=photo[0], caption=text, parse_mode="HTML")]
 
     send_02 = await bot.send_media_group(chat_id=CHANNEL_ID, media=media)
-    await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=send_02[0].message_id, caption=text + f'\n\nid сообщения: {send_02[0].message_id}', parse_mode="HTML")
+    await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=send_02[0].message_id, caption=text + f'\n\nID: {send_02[0].message_id}', parse_mode="HTML")
 
     a = ''
     for i in data_state['photo']:
@@ -285,7 +293,7 @@ async def send_0(callback: CallbackQuery, bot: Bot):
     a = await callback.message.edit_text(
         text='Теперь твое объявление опубликованно <a href="https://web.telegram.org/a/#-1002160209777">здесь</a>.',
         parse_mode='HTML')
-    await start_def(callback.message, bot)
+    await start_def(callback.message)
     await asyncio.sleep(5)
     await a.delete()
     photo.clear()
@@ -326,7 +334,7 @@ async def account(call: CallbackQuery):
     average = await average_rating(send_01.from_user.username)
     await call.message.edit_text(text=
                                 f'👤 <b>Личный кабинет</b>\n\n'
-                                f'💰 Баланс счета: <b>{balance[0]} ₽</b>\n\n'
+                                f'💰 Баланс: <b>{balance[0]} ₽</b>\n\n'
                                 f'📣 Количество объявлений: <b>{col}</b>\n\n'
                                 f'🏆 Рейтинг:  <b>{average[0]}</b> {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))} <b>({average[1]})</b>'
                                  , reply_markup=markup, parse_mode='HTML')
@@ -376,7 +384,8 @@ async def forward(message, offer_data):
             f"{name[0][6]}\n\n"
             f"@{name[0][8]}\n"
             f"{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n"
-            f"({average[1]} {fb})")
+            f"({average[1]} {fb})\n\n"
+            f"ID: {name[0][1]}")
     builder = MediaGroupBuilder(caption=text)
     for i in a:
         builder.add_photo(media=f'{i}')
@@ -417,29 +426,24 @@ async def delete_1(call: CallbackQuery, bot: Bot):
 async def back_edit(call: CallbackQuery, bot: Bot):
     await delete_0(call)
 
-@rt.callback_query(F.data == 'dell')
-async def del_1(call: CallbackQuery):
-    rows = [[InlineKeyboardButton(text='Продал в барахолке "название"', callback_data='sell'), InlineKeyboardButton(text='Другая причина', callback_data='dell_2')],
-            [buttons_edit[5]]]
-    markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    await call.message.edit_text(text='Укажити причину удаления сообщения', reply_markup=markup)
-
 @rt.callback_query(F.data == 'sell')
 async def del_1(call: CallbackQuery):
     rows = [[InlineKeyboardButton(text='Да', callback_data='yes'), InlineKeyboardButton(text='Нет', callback_data='no')]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
     await call.message.edit_text(text='Вы уверены что хотите удалить объявление', reply_markup=markup)
 
-@rt.callback_query(F.data == 'dell_2')
+@rt.callback_query(F.data == 'dell')
 async def del_1(call: CallbackQuery):
-    rows = [[InlineKeyboardButton(text='Да', callback_data='yes'), InlineKeyboardButton(text='Нет', callback_data='no')]]
+    rows = [[InlineKeyboardButton(text='Да', callback_data='del_yes'), InlineKeyboardButton(text='Нет', callback_data='del_no')]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
     await call.message.edit_text(text='Вы уверены что хотите удалить объявление', reply_markup=markup)
 
-@rt.callback_query(F.data == 'yes')
+@rt.callback_query(F.data == 'del_yes')
 async def back_edit(call: CallbackQuery, bot: Bot):
     db = sqlite3.connect('users.db')
     cur = db.cursor()
+    cur.execute(f"SELECT * FROM users_offer WHERE offer_id_channel = '{call_data}'")
+    data = cur.fetchall()
     cur.execute(f"SELECT photo FROM users_offer WHERE offer_id_channel = '{call_data}'")
     photo_ = cur.fetchone()
     cur.execute(f"DELETE from users_offer WHERE offer_id_channel = {call_data}")
@@ -449,16 +453,40 @@ async def back_edit(call: CallbackQuery, bot: Bot):
     photo_ = photo_.split('|')
     photo_.pop(0)
     col = len(photo_)
-    for i in range(col):
-        ii = int(call_data) + col-1
-        ii = ii - i
-        await bot.delete_message(chat_id=CHANNEL_ID, message_id=ii)
+    try:
+        for i in range(col):
+            ii = int(call_data) + col-1
+            ii = ii - i
+            await bot.delete_message(chat_id=CHANNEL_ID, message_id=ii)
+    except:
+        average = await average_rating(data[0][8])
+        if average[1] == 1:
+            fb = 'отзыв'
+        elif average[1] == 2:
+            fb = 'отзыва'
+        elif average[1] == 3:
+            fb = 'отзыва'
+        elif average[1] == 4:
+            fb = 'отзыва'
+        else:
+            fb = 'отзывов'
+        text = (f"#{data[0][7]}\n\n"
+                f"{data[0][5]} ₽\n"
+                f"УДАЛЕННО{data[0][3]}УДАЛЕННО\n"
+                f"{data[0][4]}\n"
+                f"{data[0][6]}\n\n"
+                f"@{data[0][8]}\n"
+                f"{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n"
+                f"({average[1]} {fb})\n\n"
+                f"ID: {data[0][1]}")
+        await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=call_data, caption=text)
 
-    await call.message.edit_text(text='Объявление удалено.')
-    time.sleep(1.5)
-    await delete_0(call)
+    msg_del = await call.message.answer(text='🗑️ Объявление удалено')
+    await start_def(call.message)
+    await asyncio.sleep(3)
+    await msg_del.delete()
 
-@rt.callback_query(F.data == 'no')
+@rt.callback_query(F.data == 'del_no')
 async def back_edit(call: CallbackQuery):
     rows = [[edit_but[0], edit_but[1]],
             [edit_but[2]]]

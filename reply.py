@@ -52,8 +52,10 @@ def but_del(send_01, from_var):
     for i in range(0, len(butt_del)-1, 2):
         b = [butt_del[i], butt_del[i+1]]
         a.append(b)
-    if from_var == 'auto' or 'dispatch':
+    if from_var == 'dispatch':
         button = InlineKeyboardButton(text='‹ Назад', callback_data='pay')
+    if from_var == 'auto':
+        button = InlineKeyboardButton(text='‹ Назад', callback_data='auto_posting')
     if from_var == 'menu':
         button = InlineKeyboardButton(text='‹ Назад', callback_data='account')
     if len(butt_del) % 2 == 1:
