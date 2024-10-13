@@ -19,7 +19,7 @@ async def ref_1(call: CallbackQuery):
     rows = [[(InlineKeyboardButton(text='‹ Назад', callback_data='account'))]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
     await call.message.edit_text(text=f'<b>👥 Меню реферальной системы</b>\n\n'
-                                      f'🗣 Кол-во ваших рефералов: <b>{col_ref[0]}</b>\n\n'
-                                      f'🔗 Ваша реферальная ссылка:\n'
+                                      f'🗣 <b>Кол-во ваших рефералов:</b> {col_ref[0]}\n\n'
+                                      f'🔗 <b>Ваша реферальная ссылка:</b>\n'
                                       f'<code>https://t.me/VBaraholka_bot/?start=1_{call.message.chat.id}</code>\n\n'
                                       f'<i><b>За каждого приглашенного пользователя вам начисляется на внктренний счет 200 ₽</b></i>\n'  , reply_markup=markup, parse_mode='html')

@@ -334,9 +334,9 @@ async def account(call: CallbackQuery):
     average = await average_rating(send_01.from_user.username)
     await call.message.edit_text(text=
                                 f'👤 <b>Личный кабинет</b>\n\n'
-                                f'💰 Баланс: <b>{balance[0]} ₽</b>\n\n'
-                                f'📣 Количество объявлений: <b>{col}</b>\n\n'
-                                f'🏆 Рейтинг:  <b>{average[0]}</b> {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))} <b>({average[1]})</b>'
+                                f'💰 <b>Баланс: </b>{balance[0]} ₽\n\n'
+                                f'📣 <b>Количество объявлений: </b>{col}\n\n'
+                                f'🏆 <b>Рейтинг:  </b>{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))} ({average[1]})'
                                  , reply_markup=markup, parse_mode='HTML')
 
 @rt.callback_query(F.data == 'stat')
@@ -447,6 +447,7 @@ async def back_edit(call: CallbackQuery, bot: Bot):
     cur.execute(f"SELECT photo FROM users_offer WHERE offer_id_channel = '{call_data}'")
     photo_ = cur.fetchone()
     cur.execute(f"DELETE from users_offer WHERE offer_id_channel = {call_data}")
+    cur.execute(f"DELETE from auto_posting WHERE offer_id_channel = {call_data}")
     db.commit()
     db.close()
     photo_ = photo_[0]
@@ -481,7 +482,7 @@ async def back_edit(call: CallbackQuery, bot: Bot):
                 f"ID: {data[0][1]}")
         await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=call_data, caption=text)
 
-    msg_del = await call.message.answer(text='🗑️ Объявление удалено')
+    msg_del = await call.message.edit_text(text='🗑️ Объявление удалено')
     await start_def(call.message)
     await asyncio.sleep(3)
     await msg_del.delete()

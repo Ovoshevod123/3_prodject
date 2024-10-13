@@ -11,7 +11,7 @@ import pytz
 import datetime
 from datetime import timedelta
 from reply import buttons
-from hand import offer_def, id_list_dispatch, id_list_auto, forward, average_rating, del_media, edit_def, send_01
+from hand import offer_def, id_list_dispatch, id_list_auto, forward, average_rating, del_media, edit_def, send_01, start_def
 from inf import CRYPTO, CHANNEL_ID
 tz = pytz.timezone("Europe/Samara")
 
@@ -83,9 +83,7 @@ async def pay_offer_menu(call: CallbackQuery, bot: Bot):
 
 @rt_5.callback_query(F.data == 'pay')
 async def pay(call: CallbackQuery):
-    first = await curs(100)
-    second = await curs(200)
-    rows = [[InlineKeyboardButton(text=f'Рассылка объявления 100 ₽ ({round(first, 2)} $)', callback_data='dispatch_offer')],
+    rows = [[InlineKeyboardButton(text=f'Рассылка объявления 99 ₽', callback_data='dispatch_offer')],
             [InlineKeyboardButton(text=f'Автопубликация', callback_data='auto_posting')],
             [InlineKeyboardButton(text='‹ Назад', callback_data='back')]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
@@ -193,12 +191,11 @@ async def auto_posting_2(call: CallbackQuery):
 @rt_5.callback_query(lambda query: query.data in id_list_auto)
 async def auto_posting_3(call: CallbackQuery):
     global call_data, call_inf, id_msg_2, id_list_auto
-    await call.message.delete()
     id_list_auto.clear()
     call_data = call.data
     call_data = call_data.replace('_auto', '')
     call_inf = call
-    id_msg_2 = await forward(call.message, call_data)
+
     db = sqlite3.connect('users.db')
     cur = db.cursor()
     cur.execute(f"SELECT offer_id_channel FROM auto_posting WHERE offer_id_channel = '{call_data}'")
@@ -206,7 +203,7 @@ async def auto_posting_3(call: CallbackQuery):
     db.commit()
     db.close()
     if data != None:
-        rows = [[InlineKeyboardButton(text='Назад', callback_data='auto_posting')]]
+        rows = [[InlineKeyboardButton(text='‹ Назад', callback_data='auto_posting')]]
         markup = InlineKeyboardMarkup(inline_keyboard=rows)
         db = sqlite3.connect('users.db')
         cur = db.cursor()
@@ -216,8 +213,10 @@ async def auto_posting_3(call: CallbackQuery):
         db.close()
         still_time_2 = still_time[0].split('-')
         still_time = datetime.datetime(int(still_time_2[0]), int(still_time_2[1]), int(still_time_2[2]), tzinfo=tz) - datetime.datetime.now(tz)
-        await call.message.answer(text=f'Это объявление уже используется в тарифе.\n\nДо конца тарифа {still_time.days + 1} дней ', reply_markup=markup)
+        await call.message.edit_text(text=f'Это объявление уже используется в тарифе.\n\nДо конца тарифа {still_time.days + 1} дней ', reply_markup=markup)
     else:
+        await call.message.delete()
+        id_msg_2 = await forward(call.message, call_data)
         if ap_data == '7day_auto':
             await payment_question(call.message, '7day_pay')
         elif ap_data == '30day_auto':
@@ -234,7 +233,7 @@ async def auto_posting_3(call: CallbackQuery):
 @rt_5.callback_query(F.data == '7day_pay')
 async def auto_posting(call: CallbackQuery):
     global pay_def
-    pay_def = await creat(0.01)
+    pay_def = await creat(0.05)
     rows = [[InlineKeyboardButton(text='Оплатить', url=pay_def.bot_invoice_url)],
             [InlineKeyboardButton(text='Проверить оплату', callback_data='chek_auto_pay_7')],
             [InlineKeyboardButton(text='‹ Назад', callback_data='auto_posting')]]
@@ -261,11 +260,14 @@ async def auto_posting(call: CallbackQuery):
         await call.message.edit_text(text='Недостаточно средств')
     else:
         cur.execute(f"UPDATE users SET balance = {float(data[0]) - 0.01} WHERE id = '{call.from_user.id}'")
-        await call.message.edit_text(text='Успешно')
         date = datetime.datetime.strptime(f'{datetime.date.today()}', '%Y-%m-%d')
         new_date = date + timedelta(days=30)
         cur.execute(
-            f"INSERT INTO auto_posting VALUES ('{call.message.chat.id}', '{call_data}', '{call.message.from_user.username}', '{datetime.date.today()}', '{new_date.strftime('%Y-%m-%d')}')")
+            f"INSERT INTO auto_posting VALUES ('{call.message.chat.id}', '{call_data}', '{call.from_user.username}', '{datetime.date.today()}', '{new_date.strftime('%Y-%m-%d')}')")
+        msg = await call.message.edit_text(text='Успешно')
+        await start_def(call.message)
+        await asyncio.sleep(3)
+        await msg.delete()
     db.commit()
     db.close()
 
@@ -279,11 +281,14 @@ async def auto_posting(call: CallbackQuery):
         await call.message.edit_text(text='Недостаточно средств')
     else:
         cur.execute(f"UPDATE users SET balance = {float(data[0]) - 0.01} WHERE id = '{call.from_user.id}'")
-        await call.message.edit_text(text='Успешно')
         date = datetime.datetime.strptime(f'{datetime.date.today()}', '%Y-%m-%d')
         new_date = date + timedelta(days=7)
         cur.execute(
-            f"INSERT INTO auto_posting VALUES ('{call.message.chat.id}', '{call_data}', '{call.message.from_user.username}', '{datetime.date.today()}', '{new_date.strftime('%Y-%m-%d')}')")
+            f"INSERT INTO auto_posting VALUES ('{call.message.chat.id}', '{call_data}', '{call.from_user.username}', '{datetime.date.today()}', '{new_date.strftime('%Y-%m-%d')}')")
+        msg = await call.message.edit_text(text='Успешно')
+        await start_def(call.message)
+        await asyncio.sleep(3)
+        await msg.delete()
     db.commit()
     db.close()
 
@@ -298,10 +303,13 @@ async def auto_posting(call: CallbackQuery, bot: Bot):
             tarif = 30
         date = datetime.datetime.strptime(f'{datetime.date.today()}', '%Y-%m-%d')
         new_date = date + timedelta(days=tarif)
-        await call.message.edit_text(text='Оплата прошла')
         db = sqlite3.connect('users.db')
         cur = db.cursor()
-        cur.execute(f"INSERT INTO auto_posting VALUES ('{call.message.chat.id}', '{call_data}', '{call.message.from_user.username}', '{datetime.date.today()}', '{new_date.strftime('%Y-%m-%d')}')")
+        cur.execute(f"INSERT INTO auto_posting VALUES ('{call.message.chat.id}', '{call_data}', '{call.from_user.username}', '{datetime.date.today()}', '{new_date.strftime('%Y-%m-%d')}')")
+        msg = await call.message.edit_text(text='Оплата прошла')
+        await start_def(call.message)
+        await asyncio.sleep(3)
+        await msg.delete()
         db.commit()
         db.close()
     if chek == False:

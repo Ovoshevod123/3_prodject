@@ -98,8 +98,8 @@ async def menu_fb(call: CallbackQuery, state: FSMContext):
             [InlineKeyboardButton(text='Посмотреть отзывы', callback_data='chek_fb')],
             [buttons[4]]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    await call.message.edit_text(text='📄 Это меню отзывов.\n\n'
-                                      'Здесь можно посмотреть рейтинг и отзывы других пользователей, а также оставить свой собственный отзыв.', reply_markup=markup)
+    await call.message.edit_text(text='📄 <b>Это меню отзывов.</b>\n\n'
+                                      'Здесь можно посмотреть рейтинг и отзывы других пользователей, а также оставить свой отзыв на продавца.', reply_markup=markup, parse_mode="HTML")
     await state.clear()
 
 @rt_3.callback_query(F.data == 'chek_fb')
@@ -161,12 +161,31 @@ async def fbs_def(message, data_fbs, score, out):
         for i in data_fbs:
             frst += int(i[3])
         srznch = round(frst/int(len(data_fbs)), 2)
-        text = (f"Пользователь: @{data_fbs[score][1]}\n"
-                f"Рейтинг: {srznch}\n\n"
-                f"Отзыв {score+1} из {fb_score}\n\n"
-                f"Оценка:\n{'⭐' * data_fbs[score][3]}{' ☆' * (5 - data_fbs[score][3])}\n\n"
-                f"Коментарий:\n{data_fbs[score][2]}\n\n"
-                f"Дата публикации отзыва: {data_fbs[score][5]}")
+        # text = (f"👤 Пользователь: @{data_fbs[score][1]} {srznch} ({fb_score})\n\n"
+        #         f"📄 Отзыв {score+1} из {fb_score}\n\n"
+        #         f"🏆 Оценка:\n{'⭐' * data_fbs[score][3]}{' ☆' * (5 - data_fbs[score][3])}\n\n"
+        #         f"Коментарий:\n{data_fbs[score][2]}\n\n"
+        #         f"📅 📆 🗓️ Дата публикации отзыва: {data_fbs[score][5]}")
+        month = {
+            '1': 'Января',
+            '2': 'Февраля',
+            '3': 'Марта',
+            '4': 'Апреля',
+            '5': 'Мая',
+            '6': 'Июня',
+            '7': 'Июля',
+            '8': 'Августа',
+            '9': 'Сентября',
+            '10': 'Октября',
+            '11': 'Ноября',
+            '12': 'Декабря',
+        }
+        date = str(data_fbs[score][5]).split('-')
+        date = f'{date[2]} {month[f"{date[1]}"]} {date[0]}'
+        text = (f"<b>@{data_fbs[score][1]} {srznch} ({fb_score})</b>\n\n"
+                f"<b>{date}</b> {'⭐' * data_fbs[score][3]}{' ☆' * (5 - data_fbs[score][3])}\n\n"
+                f"<b>Коментарий:</b>\n{data_fbs[score][2]}\n\n"
+                f"{score+1} из {fb_score}")
         if out == 'fb':
             rows = [[InlineKeyboardButton(text='<', callback_data='<'), InlineKeyboardButton(text='>', callback_data='>')],
                     [InlineKeyboardButton(text='‹ Назад', callback_data='chek_fb')]]
@@ -199,9 +218,9 @@ async def fbs_def(message, data_fbs, score, out):
                 markup = InlineKeyboardMarkup(inline_keyboard=rows)
 
         try:
-            await message.edit_text(text=text, reply_markup=markup)
+            await message.edit_text(text=text, reply_markup=markup, parse_mode='HTML')
         except:
-            await message.answer(text=text, reply_markup=markup)
+            await message.answer(text=text, reply_markup=markup, parse_mode='HTML')
 
 async def feedback_chek_group(message: Message, name):
     global fb_score, fbs
