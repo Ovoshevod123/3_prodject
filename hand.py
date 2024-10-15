@@ -28,6 +28,23 @@ class new_product(StatesGroup):
     price = State()
     locate = State()
 
+async def text_def(id_of, user):
+    db = sqlite3.connect('users.db')
+    cur = db.cursor()
+    cur.execute(f"SELECT * FROM users_offer WHERE offer_id_channel = '{id_of}'")
+    name = cur.fetchall()
+    db.commit()
+    db.close()
+    average = await average_rating(name[0][8])
+    text = (f"<i><b>\"{name[0][3]}\"</b></i>\n"
+            f"<b>{name[0][5]} ₽</b>\n"
+            f"{name[0][4]}\n"
+            f"{name[0][6]} 📍\n\n"
+            f"@{name[0][8]}\n"
+            f"<a href='t.me/VBaraholka_bot/?start=2_{user}'>{average[0]} ({average[1]})</a> {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n\n"
+            f"#{name[0][7]}\n"
+            f"ID: {name[0][1]}")
+
 async def start_def(message: Message):
     rows = [[buttons[5], buttons[1]],
             [buttons[6], InlineKeyboardButton(text='🆘 Тех. поддрежка', url='t.me/Kukuru3a')],
@@ -226,24 +243,13 @@ async def new_6(message: Message, state: FSMContext, bot: Bot, ):
             data['group'] = 'Жидкость'
         else:
             data['group'] = 'Эл_сигарета'
-        if average[1] == 1:
-            fb = 'отзыв'
-        elif average[1] == 2:
-            fb = 'отзыва'
-        elif average[1] == 3:
-            fb = 'отзыва'
-        elif average[1] == 4:
-            fb = 'отзыва'
-        else:
-            fb = 'отзывов'
-        text = (f"#{data['group']}\n\n"
-                f"{data['price']} ₽\n"
-                f"{data['name']}\n"
+        text = (f"<i><b>\"{data['name']}\"</b></i>\n"
+                f"<b>{data['price']} ₽</b>\n"
                 f"{data['description']}\n"
-                f"{data['locate']}\n\n"
-                f"@{message.from_user.username}   <a href='t.me/VBaraholka_bot/?start=2_{message.from_user.username}'>посмотреть отзовы</a>\n"
-                f"{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n"
-                f"({average[1]} {fb})")
+                f"{data['locate']} 📍\n\n"
+                f"@{message.from_user.username}\n"
+                f"<a href='t.me/VBaraholka_bot/?start=2_{message.from_user.username}'>{average[0]} ({average[1]})</a> {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n\n"
+                f"#{data['group']}\n")
         builder = MediaGroupBuilder(caption=text)
         for i in data['photo']:
             builder.add_photo(media=f'{i}', parse_mode="HTML")
@@ -359,36 +365,17 @@ async def delete_0(call: CallbackQuery):
 async def forward(message, offer_data):
     db = sqlite3.connect('users.db')
     cur = db.cursor()
-    cur.execute(f"SELECT * FROM users_offer WHERE offer_id_channel = '{offer_data}'")
-    name = cur.fetchall()
+    cur.execute(f"SELECT photo FROM users_offer WHERE offer_id_channel = '{offer_data}'")
+    name = cur.fetchone()
     db.commit()
     db.close()
-    a = name[0][2]
+    a = name[0]
     a = a.split('|')
     a.pop(0)
-    average = await average_rating(name[0][8])
-    if average[1] == 1:
-        fb = 'отзыв'
-    elif average[1] == 2:
-        fb = 'отзыва'
-    elif average[1] == 3:
-        fb = 'отзыва'
-    elif average[1] == 4:
-        fb = 'отзыва'
-    else:
-        fb = 'отзывов'
-    text = (f"#{name[0][7]}\n\n"
-            f"{name[0][5]} ₽\n"
-            f"{name[0][3]}\n"
-            f"{name[0][4]}\n"
-            f"{name[0][6]}\n\n"
-            f"@{name[0][8]}\n"
-            f"{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n"
-            f"({average[1]} {fb})\n\n"
-            f"ID: {name[0][1]}")
+    text = await text_def(call_data, message.from_user.username)
     builder = MediaGroupBuilder(caption=text)
     for i in a:
-        builder.add_photo(media=f'{i}')
+        builder.add_photo(media=f'{i}', parse_mode="HTML")
     id_msg = await message.answer_media_group(media=builder.build())
     return id_msg
 
@@ -443,7 +430,7 @@ async def back_edit(call: CallbackQuery, bot: Bot):
     db = sqlite3.connect('users.db')
     cur = db.cursor()
     cur.execute(f"SELECT * FROM users_offer WHERE offer_id_channel = '{call_data}'")
-    data = cur.fetchall()
+    name = cur.fetchall()
     cur.execute(f"SELECT photo FROM users_offer WHERE offer_id_channel = '{call_data}'")
     photo_ = cur.fetchone()
     cur.execute(f"DELETE from users_offer WHERE offer_id_channel = {call_data}")
@@ -460,27 +447,16 @@ async def back_edit(call: CallbackQuery, bot: Bot):
             ii = ii - i
             await bot.delete_message(chat_id=CHANNEL_ID, message_id=ii)
     except:
-        average = await average_rating(data[0][8])
-        if average[1] == 1:
-            fb = 'отзыв'
-        elif average[1] == 2:
-            fb = 'отзыва'
-        elif average[1] == 3:
-            fb = 'отзыва'
-        elif average[1] == 4:
-            fb = 'отзыва'
-        else:
-            fb = 'отзывов'
-        text = (f"#{data[0][7]}\n\n"
-                f"{data[0][5]} ₽\n"
-                f"УДАЛЕННО{data[0][3]}УДАЛЕННО\n"
-                f"{data[0][4]}\n"
-                f"{data[0][6]}\n\n"
-                f"@{data[0][8]}\n"
-                f"{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n"
-                f"({average[1]} {fb})\n\n"
-                f"ID: {data[0][1]}")
-        await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=call_data, caption=text)
+        average = await average_rating(name[0][8])
+        text = (f"УДАЛЕННО<i><b>\"{name[0][3]}\"</b></i>УДАЛЕННО\n"
+                f"<b>{name[0][5]} ₽</b>\n"
+                f"{name[0][4]}\n"
+                f"{name[0][6]} 📍\n\n"
+                f"@{name[0][8]}\n"
+                f"<a href='t.me/VBaraholka_bot/?start=2_{call.from_user.username}'>{average[0]} ({average[1]})</a> {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n\n"
+                f"#{name[0][7]}\n"
+                f"ID: {name[0][1]}")
+        await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=call_data, caption=text, parse_mode="HTML")
 
     msg_del = await call.message.edit_text(text='🗑️ Объявление удалено')
     await start_def(call.message)
@@ -520,36 +496,12 @@ async def edit_def(a, b, c):
     db.close()
 
 async def edit_media(message: Message, photo):
-    db = sqlite3.connect('users.db')
-    cur = db.cursor()
-    cur.execute(f"SELECT * FROM users_offer WHERE offer_id_channel = '{call_data}'")
-    name = cur.fetchall()
-    db.commit()
-    db.close()
     a = photo.split('|')
     a.pop(0)
-    average = await average_rating(name[0][8])
-    if average[1] == 1:
-        fb = 'отзыв'
-    elif average[1] == 2:
-        fb = 'отзыва'
-    elif average[1] == 3:
-        fb = 'отзыва'
-    elif average[1] == 4:
-        fb = 'отзыва'
-    else:
-        fb = 'отзывов'
-    text = (f"#{name[0][7]}\n\n"
-            f"{name[0][5]} ₽\n"
-            f"{name[0][3]}\n"
-            f"{name[0][4]}\n"
-            f"{name[0][6]}\n\n"
-            f"@{name[0][8]}\n"
-            f"{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n"
-            f"({average[1]} {fb})")
+    text = await text_def(call_data, message.from_user.username)
     builder = MediaGroupBuilder(caption=text)
     for i in a:
-        builder.add_photo(media=f'{i}')
+        builder.add_photo(media=f'{i}', parse_mode="HTML")
     b = await message.answer_media_group(media=builder.build())
     return a, b
 
@@ -639,25 +591,7 @@ async def edit_photo_2(call: CallbackQuery, bot: Bot):
     name = cur.fetchall()
     db.commit()
     db.close()
-    average = await average_rating(name[0][8])
-    if average[1] == 1:
-        fb = 'отзыв'
-    elif average[1] == 2:
-        fb = 'отзыва'
-    elif average[1] == 3:
-        fb = 'отзыва'
-    elif average[1] == 4:
-        fb = 'отзыва'
-    else:
-        fb = 'отзывов'
-    text = (f"#{name[0][7]}\n\n"
-            f"{name[0][5]} ₽\n"
-            f"{name[0][3]}\n"
-            f"{name[0][4]}\n"
-            f"{name[0][6]}\n\n"
-            f"@{name[0][8]}\n"
-            f"{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n"
-            f"({average[1]} {fb})")
+    text = await text_def(call_data, call.from_user.username)
     a = name[0][2]
     a = a.split('|')
     a.pop(0)
@@ -687,33 +621,7 @@ async def edit_photo_2(call: CallbackQuery, bot: Bot):
 
 @rt.callback_query(F.data == 'edit_yes_text')
 async def edit_photo_2(call: CallbackQuery, bot: Bot):
-    rows = [[buttons[0], buttons[1]]]
-    markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    db = sqlite3.connect('users.db')
-    cur = db.cursor()
-    cur.execute(f"SELECT * FROM users_offer WHERE offer_id_channel = '{call_data}'")
-    name = cur.fetchall()
-    db.commit()
-    db.close()
-    average = await average_rating(name[0][8])
-    if average[1] == 1:
-        fb = 'отзыв'
-    elif average[1] == 2:
-        fb = 'отзыва'
-    elif average[1] == 3:
-        fb = 'отзыва'
-    elif average[1] == 4:
-        fb = 'отзыва'
-    else:
-        fb = 'отзывов'
-    text = (f"#{name[0][7]}\n\n"
-            f"{name[0][5]} ₽\n"
-            f"{name[0][3]}\n"
-            f"{name[0][4]}\n"
-            f"{name[0][6]}\n\n"
-            f"@{name[0][8]}\n"
-            f"{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n"
-            f"({average[1]} {fb})")
+    text = await text_def(call_data, call.from_user.username)
     await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=call_data, caption=text)
     a = await call.message.edit_text(text='✏️ Объявление изменено')
     await start_def(call.message)
@@ -724,33 +632,14 @@ async def send_media(message):
 
     db = sqlite3.connect('users.db')
     cur = db.cursor()
-    cur.execute(f"SELECT * FROM users_offer WHERE offer_id_channel = '{call_data}'")
-    name = cur.fetchall()
+    cur.execute(f"SELECT photo FROM users_offer WHERE offer_id_channel = '{call_data}'")
+    name = cur.fetchone()
     db.commit()
     db.close()
-    name = name[0]
-    a = name[2]
+    a = name[0]
     a = a.split('|')
     a.pop(0)
-    average = await average_rating(name[8])
-    if average[1] == 1:
-        fb = 'отзыв'
-    elif average[1] == 2:
-        fb = 'отзыва'
-    elif average[1] == 3:
-        fb = 'отзыва'
-    elif average[1] == 4:
-        fb = 'отзыва'
-    else:
-        fb = 'отзывов'
-    text = (f"#{name[7]}\n\n"
-            f"{name[5]} ₽\n"
-            f"{name[3]}\n"
-            f"{name[4]}\n"
-            f"{name[6]}\n\n"
-            f"@{name[8]}\n"
-            f"{average[0]} {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n"
-            f"({average[1]} {fb})")
+    text = await text_def(call_data, message.from_user.username)
 
     builder = MediaGroupBuilder(caption=text)
     for i in a:
