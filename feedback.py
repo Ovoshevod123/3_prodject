@@ -267,9 +267,6 @@ async def feedback_1_2(message, state):
 @rt_3.message(feedback_class_1.id)
 async def feedback_2(message: Message, state: FSMContext):
     global deff
-    rows = [[InlineKeyboardButton(text='Да', callback_data='fb_yes'), InlineKeyboardButton(text='Нет', callback_data='fb_no')],
-            [InlineKeyboardButton(text='Главное меню', callback_data='back')]]
-    markup = InlineKeyboardMarkup(inline_keyboard=rows)
     await state.update_data(id=message.text)
     data = await state.get_data()
 
@@ -288,25 +285,19 @@ async def feedback_2(message: Message, state: FSMContext):
         await message.answer('❌ Вы не можете оставить отзыв на самого себя')
         await feedback_1_2(message, state)
     else:
-        deff = await forward_fb(message, data['id'])
-        await message.answer(text='Это объявление?', reply_markup=markup)
-
-@rt_3.callback_query(F.data == 'fb_yes')
-async def fb_data_2_1(call: CallbackQuery, bot: Bot, state: FSMContext):
-    await state.clear()
-    await call.message.edit_text(text='Напишите коментарий')
-    await state.set_state(feedback_class_2.text_fb)
-
-@rt_3.callback_query(F.data == 'fb_no')
-async def fb_data_2_2(call: CallbackQuery, bot: Bot, state: FSMContext):
-    await state.clear()
-    await feedback_1(call, state)
+        await message.edit_text(text='Убедитесь что верно выбранно объявление!\n\n'
+                                     'Напишите коментарий')
+        await state.set_state(feedback_class_2.text_fb)
 
 @rt_3.message(feedback_class_2.text_fb)
 async def feedback_3(message: Message, state: FSMContext):
-    await state.update_data(text_fb=message.text)
-    await message.answer(text='Поставте оценку от 1 до 5')
-    await state.set_state(feedback_class_2.score)
+    if message.content_type != types.ContentType.TEXT:
+        await message.answer(text='Пришлите текст!')
+        await state.set_state(feedback_class_1.id)
+    else:
+        await state.update_data(text_fb=message.text)
+        await message.answer(text='Поставте оценку от 1 до 5')
+        await state.set_state(feedback_class_2.score)
 
 @rt_3.message(feedback_class_2.score)
 async def feedback_4(message: Message, state: FSMContext):

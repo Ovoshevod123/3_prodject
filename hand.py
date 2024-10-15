@@ -47,6 +47,10 @@ async def text_def(id_of, user):
     return text
 
 async def start_def(message: Message):
+    try:
+        await msg_photo.delete()
+    except:
+        pass
     rows = [[buttons[5], buttons[1]],
             [buttons[6], InlineKeyboardButton(text='🆘 Тех. поддрежка', url='t.me/Kukuru3a')],
             [buttons[0]]]
@@ -60,6 +64,10 @@ async def start_def(message: Message):
 @rt.message(Command('start'))
 async def start(message: Message, bot: Bot):
     global send_01
+    try:
+        await msg_photo.delete()
+    except:
+        pass
     rows = [[buttons[5], buttons[1]],
             [buttons[6], InlineKeyboardButton(text='🆘 Тех. поддрежка', url='t.me/Kukuru3a')],
             [buttons[0]]]
@@ -85,15 +93,14 @@ async def start(message: Message, bot: Bot):
             if ref[2:] == str(send_01.from_user.id):
                 ref = None
             else:
-                cur.execute(f"SELECT id FROM users WHERE id = '{ref}'")
-                await bot.send_message(chat_id=int(ref), text='По вашей ссылке')
+                cur.execute(f"SELECT id FROM users WHERE id = '{ref[2:]}'")
+                cur.execute(f"SELECT col_ref FROM users WHERE id = '{ref[2:]}'")
+                col_ref = cur.fetchall()
+                cur.execute(f"Update users set 'col_ref' = '{int(col_ref[0][0]) + 1}' where id = '{ref[2:]}'")
+                await bot.send_message(chat_id=int(ref[2:]), text='По вашей ссылке')
             await message.answer(text=text, reply_markup=markup, parse_mode='HTML')
-
     if info == None:
-        cur.execute(f"SELECT col_ref FROM users WHERE id = '{ref}'")
-        col_ref = cur.fetchall()
-        cur.execute(f"Update users set 'col_ref' = '{int(col_ref[0][0]) + 1}' where id = '{ref}'")
-        cur.execute(f"INSERT INTO users VALUES ('{send_01.from_user.id}', '{send_01.from_user.username}', '0', '0', '{ref}')")
+        cur.execute(f"INSERT INTO users VALUES ('{send_01.from_user.id}', '{send_01.from_user.username}', '0', '0', '{ref[2:]}')")
     db.commit()
     db.close()
 
@@ -177,6 +184,7 @@ async def new_2_1(call: CallbackQuery, state: FSMContext):
 
 @rt.message(new_product.photo)
 async def new_2_2(message: Message, state: FSMContext):
+    global msg_photo
     kb = [[types.KeyboardButton(text="Это все, сохранить фото")]]
     markup = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
     try:
@@ -199,7 +207,7 @@ async def new_2_2(message: Message, state: FSMContext):
             elif col > 5:
                 await message.answer(text='Вы отправили больше 5 фото')
             else:
-                await message.answer(text=f'Фото добавлено – {col} из 5. Еще одно?', reply_markup=markup)
+                msg_photo = await message.answer(text=f'Фото добавлено – {col} из 5. Еще одно?', reply_markup=markup)
     except TypeError:
         await message.answer(text='Пришлите фото!')
 
@@ -294,6 +302,10 @@ async def send_0(callback: CallbackQuery, bot: Bot):
     date = datetime.datetime.now()
     cur.execute(
         f"""INSERT INTO users_offer VALUES ('{send_01.chat.id}', '{send_02[0].message_id}', '{a}', '{data_state['name']}', '{data_state['description']}', '{data_state['price']}', '{data_state['locate']}', '{data_state['group']}', '{send_01.from_user.username}', '{date.date()}')""")
+    cur.execute(f"SELECT username FROM users WHERE id = '{callback.from_user.id}'")
+    chek_username = cur.fetchone()
+    if str(chek_username[0]) == 'None':
+        cur.execute(f"UPDATE users SET username = '{callback.from_user.username}' WHERE id = '{callback.from_user.id}'")
     db.commit()
     db.close()
 
