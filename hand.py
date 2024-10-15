@@ -44,6 +44,7 @@ async def text_def(id_of, user):
             f"<a href='t.me/VBaraholka_bot/?start=2_{user}'>{average[0]} ({average[1]})</a> {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n\n"
             f"#{name[0][7]}\n"
             f"ID: {name[0][1]}")
+    return text
 
 async def start_def(message: Message):
     rows = [[buttons[5], buttons[1]],
