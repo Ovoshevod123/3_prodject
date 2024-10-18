@@ -1,20 +1,29 @@
 import asyncio
+from os.path import isabs
+
 from aiogram import Bot, Dispatcher, types, Router, F
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, InlineKeyboardMarkup, CallbackQuery, ReplyKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 import datetime
+from datetime import date
 import pytz
 import sqlite3
-from hand import average_rating, del_media
+from hand import average_rating, del_media, use_token_ub
 from inf import ADMIN_LIST, CHANNEL_ID
 
 rt_4 = Router()
 
 tz = pytz.timezone("Europe/Samara")
 
+class ban_user(StatesGroup):
+    username = State()
+
 @rt_4.message(Command('admin'))
 async def chek_admin(message: Message):
-    rows = [[InlineKeyboardButton(text='Запуск авто-постинга', callback_data='ap')]]
+    rows = [[InlineKeyboardButton(text='Запуск авто-постинга', callback_data='ap')],
+            [InlineKeyboardButton(text='Бан пользователя', callback_data='ban')]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
     if message.chat.id == ADMIN_LIST:
         await message.answer(text='Добро пожаловать', reply_markup=markup)
@@ -91,3 +100,21 @@ async def send_media(bot, offer_id):
     cur.execute(f"INSERT INTO auto_posting VALUES ('{name_2[0]}', '{send_02[0].message_id}', '{name_2[2]}', '{name_2[3]}', '{name_2[4]}')")
     db.commit()
     db.close()
+
+@rt_4.callback_query(F.data == 'ban')
+async def auto_posting(call: CallbackQuery, state: FSMContext):
+    await call.message.edit_text(text='Введите username пользователя')
+    await state.set_state(ban_user.username)
+
+@rt_4.message(ban_user.username)
+async def ban_1(message: Message, state: FSMContext):
+    await state.update_data(username=message.text)
+    data = await state.get_data()
+    db = sqlite3.connect('users.db')
+    cur = db.cursor()
+    cur.execute(f"SELECT id FROM users WHERE username = '{data['username']}'")
+    id_user = cur.fetchone()
+    cur.execute(f"INSERT INTO ban_users VALUES ('{id_user[0]}', '{data['username']}', '{date.today()}')")
+    db.commit()
+    db.close()
+    await message.answer('Пользователь забанен')

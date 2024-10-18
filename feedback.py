@@ -7,6 +7,9 @@ from aiogram.utils.media_group import MediaGroupBuilder
 import sqlite3
 import asyncio
 from datetime import date
+
+from aiohttp.helpers import method_must_be_empty_body
+
 from reply import buttons, but_del, edit_but, buttons_edit
 from inf import CHANNEL_ID
 
@@ -181,13 +184,14 @@ async def fbs_def(message, data_fbs, score, out):
             '12': 'Декабря',
         }
         date = str(data_fbs[score][5]).split('-')
-        date = f'{date[2]} {month[f"{date[1]}"]} {date[0]}'
-        text = (f"<b>@{data_fbs[score][1]} {srznch} ({fb_score})</b>\n\n"
-                f"<b>{date}</b> {'⭐' * data_fbs[score][3]}{' ☆' * (5 - data_fbs[score][3])}\n\n"
+        # date = f'{date[2]} {month[f"{date[1]}"]} {date[0]}'
+        date = f"{date[2]}.{date[1]}.{date[0]}"
+        text = (f"<b>@{data_fbs[score][1]}</b> {srznch} ({fb_score})\n\n"
+                f"{'⭐' * data_fbs[score][3]}{' ☆' * (5 - data_fbs[score][3])}\n"
                 f"<b>Коментарий:</b>\n{data_fbs[score][2]}\n\n"
-                f"{score+1} из {fb_score}")
+                f"<b>{date}</b>\n\n")
         if out == 'fb':
-            rows = [[InlineKeyboardButton(text='<', callback_data='<'), InlineKeyboardButton(text='>', callback_data='>')],
+            rows = [[InlineKeyboardButton(text='<', callback_data='<'), InlineKeyboardButton(text=f'{score+1}/{fb_score}', callback_data='sfdgfdgdsf'), InlineKeyboardButton(text='>', callback_data='>')],
                     [InlineKeyboardButton(text='‹ Назад', callback_data='chek_fb')]]
             if fb_score == 1:
                 for i in range(2):
@@ -197,12 +201,12 @@ async def fbs_def(message, data_fbs, score, out):
                 rows[0].pop(0)
                 markup = InlineKeyboardMarkup(inline_keyboard=rows)
             elif score == fb_score - 1:
-                rows[0].pop(1)
+                rows[0].pop(2)
                 markup = InlineKeyboardMarkup(inline_keyboard=rows)
             else:
                 markup = InlineKeyboardMarkup(inline_keyboard=rows)
         else:
-            rows = [[InlineKeyboardButton(text='<', callback_data='<<'), InlineKeyboardButton(text='>', callback_data='>>')],
+            rows = [[InlineKeyboardButton(text='<', callback_data='<<'), InlineKeyboardButton(text=f'{score+1}/{fb_score}', callback_data='sfdgfdgdsf'),InlineKeyboardButton(text='>', callback_data='>>')],
                     [InlineKeyboardButton(text='‹ Назад', callback_data='account')]]
             if fb_score == 1:
                 for i in range(2):
@@ -212,7 +216,7 @@ async def fbs_def(message, data_fbs, score, out):
                 rows[0].pop(0)
                 markup = InlineKeyboardMarkup(inline_keyboard=rows)
             elif score == fb_score - 1:
-                rows[0].pop(1)
+                rows[0].pop(2)
                 markup = InlineKeyboardMarkup(inline_keyboard=rows)
             else:
                 markup = InlineKeyboardMarkup(inline_keyboard=rows)
@@ -274,20 +278,27 @@ async def feedback_2(message: Message, state: FSMContext):
     cur = db.cursor()
     cur.execute(f"SELECT offer_id_channel,seller FROM users_offer WHERE offer_id_channel = '{data['id']}'")
     db_var = cur.fetchall()
+    cur.execute(f"SELECT fb_user FROM fb_offer WHERE offer_id = '{data['id']}'")
+    db_var_2 = cur.fetchone()
     db.commit()
     db.close()
-
-    if db_var == []:
+    if db_var_2 != None:
         await state.clear()
-        await message.answer(text='❌ Объявление не найдено')
-        await feedback_1_2(message, state)
-    elif db_var[0][1] == message.from_user.username:
-        await message.answer('❌ Вы не можете оставить отзыв на самого себя')
+        await message.answer('❌ Вы уже осталяли отзыв на это объявление')
         await feedback_1_2(message, state)
     else:
-        await message.edit_text(text='Убедитесь что верно выбранно объявление!\n\n'
-                                     'Напишите коментарий')
-        await state.set_state(feedback_class_2.text_fb)
+        if db_var == []:
+            await state.clear()
+            await message.answer(text='❌ Объявление не найдено')
+            await feedback_1_2(message, state)
+        elif db_var[0][1] == message.from_user.username:
+            await message.answer('❌ Вы не можете оставить отзыв на самого себя')
+            await feedback_1_2(message, state)
+        else:
+            deff = await forward_fb(message, data['id'])
+            await message.answer(text='Убедитесь что верно выбранно объявление!\n\n'
+                                         'Напишите коментарий')
+            await state.set_state(feedback_class_2.text_fb)
 
 @rt_3.message(feedback_class_2.text_fb)
 async def feedback_3(message: Message, state: FSMContext):
@@ -338,7 +349,7 @@ async def fb_data_4_1(call: CallbackQuery, bot: Bot, state: FSMContext):
     await msg_2.delete()
     db = sqlite3.connect('users.db')
     cur = db.cursor()
-    cur.execute(f"INSERT INTO fb_offer VALUES ('{deff[0][1]}', '{deff[0][8]}', '{data['text_fb']}', '{data['score']}', '{msg.from_user.username}', '{date.today()}')")
+    cur.execute(f"INSERT INTO fb_offer VALUES ('{deff[0][1]}', '{deff[0][8]}', '{data['text_fb']}', '{data['score']}', '{msg.from_user.id}', '{date.today()}')")
     db.commit()
     db.close()
     await state.clear()
