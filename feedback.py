@@ -87,7 +87,7 @@ async def account_fb(call, msg):
             [InlineKeyboardButton(text='‹ Назад', callback_data='account')]]
     db = sqlite3.connect('users.db')
     cur = db.cursor()
-    cur.execute(f"SELECT * FROM fb_offer WHERE seller = '{msg.from_user.username}'")
+    cur.execute(f"SELECT * FROM fb_offer WHERE seller = '{msg.chat.username}'")
     fbs = cur.fetchall()
     db.commit()
     db.close()
@@ -291,7 +291,7 @@ async def feedback_2(message: Message, state: FSMContext):
             await state.clear()
             await message.answer(text='❌ Объявление не найдено')
             await feedback_1_2(message, state)
-        elif db_var[0][1] == message.from_user.username:
+        elif db_var[0][1] == message.chat.username:
             await message.answer('❌ Вы не можете оставить отзыв на самого себя')
             await feedback_1_2(message, state)
         else:

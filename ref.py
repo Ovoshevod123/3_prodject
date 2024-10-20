@@ -4,7 +4,6 @@ from aiogram.filters import Command
 import sqlite3
 import time
 import asyncio
-from hand import send_01
 
 rt_6 = Router()
 

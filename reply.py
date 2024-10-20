@@ -19,12 +19,12 @@ delete_final = InlineKeyboardButton(text='🗑️ Удалить', callback_data
 edit = InlineKeyboardButton(text='✏️ Редактировать', callback_data='edit')
 back_edit = InlineKeyboardButton(text='‹ Назад', callback_data='back_2')
 
-edit_photo = InlineKeyboardButton(text='Изменить фото', callback_data='photo')
-edit_name = InlineKeyboardButton(text='Изменить название', callback_data='name')
-edit_description = InlineKeyboardButton(text='Изменить описание', callback_data='description')
-edit_price = InlineKeyboardButton(text='Изменить цену', callback_data='price')
-edit_locate = InlineKeyboardButton(text='Изменить место встречи', callback_data='locate')
-edit_back = InlineKeyboardButton(text='‹ Назад', callback_data='no')
+edit_photo = InlineKeyboardButton(text='Фото', callback_data='photo')
+edit_name = InlineKeyboardButton(text='«Название»', callback_data='name')
+edit_price = InlineKeyboardButton(text='Цену ₽', callback_data='price')
+edit_description = InlineKeyboardButton(text='Описание', callback_data='description')
+edit_locate = InlineKeyboardButton(text='📍Место встречи', callback_data='locate')
+edit_back = InlineKeyboardButton(text='‹ Назад', callback_data='del_no')
 
 buttons = [new, account, new_2, good, back, pay, fb, my_off]
 
@@ -32,12 +32,12 @@ edit_but = [delete_final, edit, back_edit]
 
 buttons_edit = [edit_photo, edit_price, edit_name, edit_description, edit_locate, edit_back]
 
-def but_del(send_01, from_var):
+def but_del(msg, from_var):
     db = sqlite3.connect('users.db')
     cur = db.cursor()
-    cur.execute(f"SELECT offer_name FROM users_offer WHERE id = '{send_01.chat.id}'")
+    cur.execute(f"SELECT offer_name FROM users_offer WHERE id = '{msg.chat.id}'")
     name = cur.fetchall()
-    cur.execute(f"SELECT offer_id_channel FROM users_offer WHERE id = '{send_01.chat.id}'")
+    cur.execute(f"SELECT offer_id_channel FROM users_offer WHERE id = '{msg.chat.id}'")
     id_channel = cur.fetchall()
     data = dict(zip(id_channel, name))
     butt_del = []

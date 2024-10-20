@@ -20,7 +20,6 @@ id_list_auto = []
 chek_ub = []
 edit_list = []
 
-send_01 = Message
 class new_product(StatesGroup):
     group = State()
     photo = State()
@@ -46,7 +45,7 @@ async def text_def(id_of, user):
             price = f"<b>{name[0][5]}</b>\n"
 
     average = await average_rating(name[0][8])
-    text = (f"<b>\"{name[0][3]}\"</b>\n"
+    text = (f"<b>«{name[0][3]}»</b>\n"
             f"{price}"
             f"{name[0][4]}\n"
             f"{name[0][6]} 📍\n\n"
@@ -61,6 +60,7 @@ async def start_def(message: Message):
     edit_list.clear()
     try:
         await msg_photo.delete()
+        await msg_2.delete()
     except:
         pass
     rows = [[buttons[5], buttons[1]],
@@ -75,10 +75,10 @@ async def start_def(message: Message):
 
 @rt.message(Command('start'))
 async def start(message: Message, bot: Bot):
-    global send_01
     edit_list.clear()
     try:
         await msg_photo.delete()
+        await msg_2.delete()
     except:
         pass
     rows = [[buttons[5], buttons[1]],
@@ -89,21 +89,20 @@ async def start(message: Message, bot: Bot):
             f'Покупайте, продавайте под системы, кальяты и т.д.\n\n'
             f'Подпичывайтесь на наш канал.\n\n'
             f'Ваши объявления публикуются здесь.')
-    send_01 = message
     db = sqlite3.connect('users.db')
     cur = db.cursor()
-    cur.execute(f"SELECT id FROM users WHERE id = '{send_01.from_user.id}'")
+    cur.execute(f"SELECT id FROM users WHERE id = '{message.chat.id}'")
     info = cur.fetchone()
-    if send_01.text == '/start':
+    if message.text == '/start':
         ref = None
         await message.answer(text=text, reply_markup=markup, parse_mode='HTML')
     else:
-        ref = send_01.text.replace('/start ', '')
+        ref = message.text.replace('/start ', '')
         if ref[0:2] == '2_':
             ref = ref.replace('2_', '')
             await feedback_chek_group(message, ref)
         elif ref[0:2] == '1_':
-            if ref[2:] == str(send_01.from_user.id):
+            if ref[2:] == str(message.chat.id):
                 ref = None
             else:
                 cur.execute(f"SELECT id FROM users WHERE id = '{ref[2:]}'")
@@ -113,7 +112,7 @@ async def start(message: Message, bot: Bot):
                 await bot.send_message(chat_id=int(ref[2:]), text='По вашей ссылке')
             await message.answer(text=text, reply_markup=markup, parse_mode='HTML')
     if info == None:
-        cur.execute(f"INSERT INTO users VALUES ('{send_01.from_user.id}', '{send_01.from_user.username}', '0', '0', '{ref[2:]}')")
+        cur.execute(f"INSERT INTO users VALUES ('{message.chat.id}', '{message.chat.username}', '0', '0', '{ref[2:]}')")
     db.commit()
     db.close()
 
@@ -235,6 +234,7 @@ async def new_2_2(message: Message, state: FSMContext):
 
 @rt.message(new_product.name)
 async def new_3(message: Message, state: FSMContext):
+    global msg_2
     if message.content_type != types.ContentType.TEXT:
         await message.answer(text='Пришлите текст!')
     else:
@@ -242,7 +242,7 @@ async def new_3(message: Message, state: FSMContext):
         await state.set_state(new_product.price)
         kb = [[types.KeyboardButton(text="Пропустить")]]
         markup = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
-        await message.answer(text='Введите цену товара:', reply_markup=markup)
+        msg_2 = await message.answer(text='Введите цену товара:', reply_markup=markup)
 
 @rt.message(new_product.price)
 async def new_5(message: Message, state: FSMContext):
@@ -271,7 +271,7 @@ async def new_6(message: Message, state: FSMContext, bot: Bot, ):
         data = await state.get_data()
         global text, send, name_ofer, data_state
         data_state = data
-        average = await average_rating(message.from_user.username)
+        average = await average_rating(message.chat.username)
         if data['price'] == 'Пропустить':
             data['price'] = None
             price = ''
@@ -284,12 +284,12 @@ async def new_6(message: Message, state: FSMContext, bot: Bot, ):
             data['group'] = 'Жидкость'
         else:
             data['group'] = 'Эл_сигарета'
-        text = (f"<i><b>\"{data['name']}\"</b></i>\n"
+        text = (f"<b>«{data['name']}»</b>\n"
                 f"{price}"
                 f"{data['description']}\n"
                 f"{data['locate']} 📍\n\n"
-                f"@{message.from_user.username}\n"
-                f"<a href='t.me/VBaraholka_bot/?start=2_{message.from_user.username}'>{average[0]} ({average[1]})</a> {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n\n"
+                f"@{message.chat.username}\n"
+                f"<a href='t.me/VBaraholka_bot/?start=2_{message.chat.username}'>{average[0]} ({average[1]})</a> {'⭐' * round(average[0])}{' ☆' * (5 - round(average[0]))}\n\n"
                 f"#{data['group']}\n")
         builder = MediaGroupBuilder(caption=text)
         for i in data['photo']:
@@ -303,7 +303,7 @@ async def new_6(message: Message, state: FSMContext, bot: Bot, ):
 
 @rt.callback_query(F.data == 'good')
 async def send_0(callback: CallbackQuery, bot: Bot):
-    global send_01, send_02, chek_ub
+    global chek_ub
 
     db = sqlite3.connect('users.db')
     cur = db.cursor()
@@ -333,11 +333,11 @@ async def send_0(callback: CallbackQuery, bot: Bot):
 
     date = datetime.datetime.now()
     cur.execute(
-        f"""INSERT INTO users_offer VALUES ('{send_01.chat.id}', '{send_02[0].message_id}', '{a}', '{data_state['name']}', '{data_state['description']}', '{data_state['price']}', '{data_state['locate']}', '{data_state['group']}', '{send_01.from_user.username}', '{date.date()}')""")
-    cur.execute(f"SELECT username FROM users WHERE id = '{callback.from_user.id}'")
+        f"""INSERT INTO users_offer VALUES ('{callback.message.chat.id}', '{send_02[0].message_id}', '{a}', '{data_state['name']}', '{data_state['description']}', '{data_state['price']}', '{data_state['locate']}', '{data_state['group']}', '{callback.message.chat.username}', '{date.date()}')""")
+    cur.execute(f"SELECT username FROM users WHERE id = '{callback.message.chat.id}'")
     chek_username = cur.fetchone()
     if str(chek_username[0]) == 'None':
-        cur.execute(f"UPDATE users SET username = '{callback.from_user.username}' WHERE id = '{callback.from_user.id}'")
+        cur.execute(f"UPDATE users SET username = '{callback.message.chat.username}' WHERE id = '{callback.message.chat.id}'")
     db.commit()
     db.close()
 
@@ -375,14 +375,14 @@ async def account(call: CallbackQuery):
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
     db = sqlite3.connect('users.db')
     cur = db.cursor()
-    cur.execute(f"SELECT * FROM users_offer WHERE id = '{send_01.chat.id}'")
+    cur.execute(f"SELECT * FROM users_offer WHERE id = '{call.message.chat.id}'")
     date = cur.fetchall()
-    cur.execute(f"SElECT balance FROM users WHERE id = '{send_01.chat.id}'")
+    cur.execute(f"SElECT balance FROM users WHERE id = '{call.message.chat.id}'")
     balance = cur.fetchone()
     db.commit()
     db.close()
     col = len(date)
-    average = await average_rating(send_01.from_user.username)
+    average = await average_rating(call.message.chat.username)
     await call.message.edit_text(text=
                                 f'👤 <b>Личный кабинет</b>\n\n'
                                 f'💰 <b>Баланс: </b>{balance[0]} ₽\n\n'
@@ -392,7 +392,7 @@ async def account(call: CallbackQuery):
 
 @rt.callback_query(F.data == 'stat')
 async def account(call: CallbackQuery):
-    await account_fb(call, send_01)
+    await account_fb(call, call.message)
 
 @rt.callback_query(F.data == 'my_off')
 async def delete_0(call: CallbackQuery):
@@ -417,7 +417,7 @@ async def forward(message, offer_data):
     a = name[0]
     a = a.split('|')
     a.pop(0)
-    text = await text_def(call_data, message.from_user.username)
+    text = await text_def(call_data, message.chat.username)
     builder = MediaGroupBuilder(caption=text)
     for i in a:
         builder.add_photo(media=f'{i}', parse_mode="HTML")
@@ -493,7 +493,7 @@ async def back_edit(call: CallbackQuery, bot: Bot):
             await bot.delete_message(chat_id=CHANNEL_ID, message_id=ii)
     except:
         average = await average_rating(name[0][8])
-        text = (f"УДАЛЕННО<i><b>\"{name[0][3]}\"</b></i>УДАЛЕННО\n"
+        text = (f"«УДАЛЕННО<b>{name[0][3]}</b>УДАЛЕННО»\n"
                 f"<b>{name[0][5]} ₽</b>\n"
                 f"{name[0][4]}\n"
                 f"{name[0][6]} 📍\n\n"
@@ -513,18 +513,21 @@ async def back_edit(call: CallbackQuery):
     rows = [[edit_but[0], edit_but[1]],
             [edit_but[2]]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    await call.message.edit_text(text='⬆️ Это ваше объявление\n\nЧто хотите сделать?', reply_markup=markup)
+    await call.message.edit_text(text='⬆️ Это ваше объявление\n\n'
+                                      'Что хотите сделать?', reply_markup=markup)
 
 @rt.callback_query(F.data == 'edit')
 async def edit_0(call: CallbackQuery):
     rows = [[buttons_edit[0]],
-            [buttons_edit[1]],
             [buttons_edit[2]],
+            [buttons_edit[1]],
             [buttons_edit[3]],
             [buttons_edit[4]],
             [buttons_edit[5]]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    await call.message.edit_text(text='Выберите что хотите изменить', reply_markup=markup)
+    await call.message.edit_text(text='⬆️ Это ваше объявление\n\n'
+                                      'Сдесь вы можете изменить его.\n'
+                                      'Что хотите изменить?', reply_markup=markup)
 
 class edit_product(StatesGroup):
     photo = State()
@@ -543,7 +546,7 @@ async def edit_def(a, b, c):
 async def edit_media(message: Message, photo):
     a = photo.split('|')
     a.pop(0)
-    text = await text_def(call_data, message.from_user.username)
+    text = await text_def(call_data, message.chat.username)
     builder = MediaGroupBuilder(caption=text)
     for i in a:
         builder.add_photo(media=f'{i}', parse_mode="HTML")
@@ -697,7 +700,7 @@ async def send_media(message, user, what_edit, edit):
         offer[6] = edit
 
     average = await average_rating(offer[8])
-    text = (f"<i><b>\"{offer[3]}\"</b></i>\n"
+    text = (f"<b>«{offer[3]}»</b>\n"
             f"<b>{offer[5]} ₽</b>\n"
             f"{offer[4]}\n"
             f"{offer[6]} 📍\n\n"

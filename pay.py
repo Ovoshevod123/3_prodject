@@ -11,7 +11,7 @@ import pytz
 import datetime
 from datetime import timedelta
 from reply import buttons
-from hand import offer_def, id_list_dispatch, id_list_auto, forward, average_rating, del_media, edit_def, send_01, start_def
+from hand import offer_def, id_list_dispatch, id_list_auto, forward, average_rating, del_media, edit_def, start_def
 from inf import CRYPTO, CHANNEL_ID
 tz = pytz.timezone("Europe/Samara")
 
