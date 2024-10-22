@@ -186,7 +186,7 @@ async def use_token_ub(call: CallbackQuery, state: FSMContext):
         else:
             global chek_ub
             chek_ub.clear()
-            rows = [[InlineKeyboardButton(text='Под система', callback_data='pod'), InlineKeyboardButton(text='Жидкость', callback_data='zhizha')],
+            rows = [[InlineKeyboardButton(text='POD-система (Подик)', callback_data='под'), InlineKeyboardButton(text='Жидкость', callback_data='жижа')],
                     [buttons[4]]]
             markup = InlineKeyboardMarkup(inline_keyboard=rows)
             chek_ub.append(True)
@@ -195,8 +195,8 @@ async def use_token_ub(call: CallbackQuery, state: FSMContext):
     else:
         await call.message.answer('У тебя нету публичного username, из за этого пользователи не смогут перейти в твой профиль и написать тебе\n\nПерейди в настройки Telegram и создай свой публичный username')
 
-@rt.callback_query(F.data == 'pod')
-@rt.callback_query(F.data == 'zhizha')
+@rt.callback_query(F.data == 'под')
+@rt.callback_query(F.data == 'жижа')
 async def new_2_1(call: CallbackQuery, state: FSMContext):
     fsm_date = call.data
     await state.update_data(group=fsm_date)
