@@ -325,7 +325,7 @@ async def send_0(callback: CallbackQuery, bot: Bot):
         media = [types.InputMediaPhoto(media=photo[0], caption=text, parse_mode="HTML")]
 
     send_02 = await bot.send_media_group(chat_id=CHANNEL_ID, media=media)
-    await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=send_02[0].message_id, caption=text + f'ID: {send_02[0].message_id}', parse_mode="HTML")
+    await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=send_02[0].message_id, caption=text + f'ID: {send_02[0].message_id}', parse_mode="HTML", reply_to=2)
 
     a = ''
     for i in data_state['photo']:
@@ -417,7 +417,7 @@ async def forward(message, offer_data):
     a = name[0]
     a = a.split('|')
     a.pop(0)
-    text = await text_def(call_data, message.chat.username)
+    text = await text_def(offer_data, message.chat.username)
     builder = MediaGroupBuilder(caption=text)
     for i in a:
         builder.add_photo(media=f'{i}', parse_mode="HTML")
@@ -813,3 +813,7 @@ async def edit_photo_2(message: Message, state: FSMContext, bot: Bot):
         await send_media(message, message.from_user.id, 'locate', data['locate'])
         await message.answer(text='⬆️ Вот так теперь выглядит ваше объявление', reply_markup=markup_2)
         await state.clear()
+
+@rt.message(Command('chat'))
+async def start(message: Message, bot: Bot):
+    await message.answer(text=f'{message.chat.id}')

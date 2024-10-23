@@ -15,8 +15,8 @@ pay = InlineKeyboardButton(text='💵 Платные тарифы', callback_dat
 fb = InlineKeyboardButton(text='📄 Меню отзывов', callback_data='fb_menu')
 account = InlineKeyboardButton(text='👤 Личный кабинет', callback_data='account')
 
-delete_final = InlineKeyboardButton(text='🗑️ Удалить', callback_data='dell')
-edit = InlineKeyboardButton(text='✏️ Редактировать', callback_data='edit')
+delete_final = InlineKeyboardButton(text='Удалить', callback_data='dell')
+edit = InlineKeyboardButton(text='Редактировать', callback_data='edit')
 back_edit = InlineKeyboardButton(text='‹ Назад', callback_data='back_2')
 
 edit_photo = InlineKeyboardButton(text='Фото', callback_data='photo')
