@@ -11,7 +11,7 @@ import pytz
 import datetime
 from datetime import timedelta
 from reply import buttons
-from hand import offer_def, id_list_dispatch, id_list_auto, forward, average_rating, del_media, edit_def, start_def
+from hand import offer_def, id_list_dispatch, id_list_auto, forward, average_rating, del_media, edit_def, start_def, text_def
 from inf import CRYPTO, CHANNEL_ID
 tz = pytz.timezone("Europe/Samara")
 
@@ -121,10 +121,10 @@ async def dispatch(call: CallbackQuery, bot: Bot):
     cur.execute(f"SELECT balance FROM users WHERE id = '{call.from_user.id}'")
     data = cur.fetchone()
     if float(data[0]) - 0.01 < 0:
-        await call.message.edit_text(text='Недостаточно средств')
+        await call.message.edit_text(text='❌ Недостаточно средств')
     else:
         cur.execute(f"UPDATE users SET balance = {float(data[0]) - 0.01} WHERE id = '{call.from_user.id}'")
-        await call.message.edit_text(text='Успешно')
+        await dispatch_def(call, bot)
     db.commit()
     db.close()
 
@@ -143,7 +143,7 @@ async def dispatch(call: CallbackQuery, bot: Bot):
     if chek == True:
         await dispatch_def(call, bot)
     if chek == False:
-        await bot.answer_callback_query(callback_query_id=call.id, text='Оплата не прошла', show_alert=True)
+        await bot.answer_callback_query(callback_query_id=call.id, text='❌ Оплата не прошла', show_alert=True)
 
 async def dispatch_def(call, bot):
     await call.message.edit_text(text='Оплата прошла успешно')
@@ -158,11 +158,11 @@ async def dispatch_def(call, bot):
     a = name[0][2]
     a = a.split('|')
     a.pop(0)
-    average = await average_rating(name[0][8])
-    text = f"Цена: {name[0][3]}\n{name[0][4]}\n{name[0][5]}\n{name[0][6]}\nПродавец: @{name[0][8]}\nРейтинг продавца: {average[0]}\nКол-во отзывов: {average[1]}"
+    text = await text_def(call_data, call.message.chat.username)
+    text = f"❗<b>РЕКЛАМА</b>❗\n\n{text}"
     builder = MediaGroupBuilder(caption=text)
     for i in a:
-        builder.add_photo(media=f'{i}')
+        builder.add_photo(media=f'{i}', parse_mode="HTML")
     for i in ids:
         await bot.send_media_group(chat_id=i[0], media=builder.build())
 
@@ -243,7 +243,7 @@ async def auto_posting(call: CallbackQuery):
             [InlineKeyboardButton(text='Проверить оплату', callback_data='chek_auto_pay_7')],
             [InlineKeyboardButton(text='‹ Назад', callback_data='back_7day')]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    await call.message.edit_text(text=f'Тариф:\nАвтопубликация 7 дней\n\nЦена: 99₽',reply_markup=markup)
+    await call.message.edit_text(text=f'❗<b>Подтвердите покупку</b>❗\n\n<b>Тариф:</b> Автопубликация 7 дней\n\n<b>Цена:</b> 99 ₽',reply_markup=markup, parse_mode="HTML")
 
 @rt_5.callback_query(F.data == '30day_pay')
 async def auto_posting(call: CallbackQuery):
@@ -253,21 +253,21 @@ async def auto_posting(call: CallbackQuery):
             [InlineKeyboardButton(text='Проверить оплату', callback_data='chek_auto_pay_30')],
             [InlineKeyboardButton(text='‹ Назад', callback_data='back_30day')]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    await call.message.edit_text(text=f'Тариф:\nАвтопубликация 30 дней\n\nЦена: 349₽', reply_markup=markup)
+    await call.message.edit_text(text=f'❗<b>Подтвердите покупку</b>❗\n\n<b>Тариф:</b> Автопубликация 30 дней\n\n<b>Цена:</b> 349 ₽', reply_markup=markup, parse_mode="HTML")
 
 @rt_5.callback_query(F.data == '7day_loc')
 async def auto_posting(call: CallbackQuery):
     rows = [[InlineKeyboardButton(text='Оплатить', callback_data='7day_pay_loc')],
             [InlineKeyboardButton(text='‹ Назад', callback_data='back_7day')]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    await call.message.edit_text(text=f'Тариф:\nАвтопубликация 7 дней\n\nЦена: 99₽', reply_markup=markup)
+    await call.message.edit_text(text=f'❗<b>Подтвердите покупку</b>❗\n\n<b>Тариф:</b> Автопубликация 7 дней\n\n<b>Цена:</b> 99 ₽', reply_markup=markup, parse_mode="HTML")
 
 @rt_5.callback_query(F.data == '30day_loc')
 async def auto_posting(call: CallbackQuery):
     rows = [[InlineKeyboardButton(text='Оплатить', callback_data='30day_pay_loc')],
             [InlineKeyboardButton(text='‹ Назад', callback_data='back_30day')]]
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
-    await call.message.edit_text(text=f'Тариф:\nАвтопубликация 30 дней\n\nЦена: 349₽', reply_markup=markup)
+    await call.message.edit_text(text=f'❗<b>Подтвердите покупку</b>❗\n\n<b>Тариф:</b> Автопубликация 30 дней\n\n<b>Цена:</b> 349 ₽', reply_markup=markup, parse_mode="HTML")
 
 @rt_5.callback_query(F.data == '30day_pay_loc')
 async def auto_posting(call: CallbackQuery):
